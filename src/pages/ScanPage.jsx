@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { supabase } from '../supabaseClient'
 import ToolTagCard from '../components/ToolTagCard'
+import StatusUpdatePanel from '../components/StatusUpdatePanel'
 
 const READER_ID = 'scan-reader'
 
@@ -131,7 +132,12 @@ export default function ScanPage() {
         </div>
       )}
 
-      {item && <ToolTagCard item={item} />}
+      {item && (
+        <>
+          <ToolTagCard item={item} />
+          <StatusUpdatePanel item={item} onUpdated={(updated) => setItem(updated)} />
+        </>
+      )}
 
       {!scanning && !item && !notFoundCode && !error && (
         <p className="scan-hint">

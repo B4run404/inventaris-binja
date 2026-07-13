@@ -8,6 +8,9 @@ kelayakan barang lewat scan barcode/QR menggunakan kamera HP.
 - **Tambah Barang** — isi form data barang baru, sistem otomatis membuat
   kode unik + QR code siap cetak untuk ditempel di barang.
 - **Rekap** — daftar semua barang beserta ringkasan jumlah per status.
+- **Ubah Status & Riwayat** — langsung dari hasil scan, bisa ubah status
+  kondisi barang (dengan catatan dan nama petugas), dan lihat riwayat
+  perubahan status sebelumnya.
 
 Dibangun dengan React + Vite, database Supabase (PostgreSQL).
 
@@ -90,7 +93,8 @@ src/
     AddItemPage.jsx     # form tambah barang + generate QR
     ListPage.jsx        # daftar & rekap semua barang
   components/
-    ToolTagCard.jsx     # kartu detail bergaya label gantung perkakas
+    ToolTagCard.jsx        # kartu detail bergaya label gantung perkakas
+    StatusUpdatePanel.jsx  # ubah status kondisi + lihat riwayat
   styles/index.css      # semua styling
 supabase/schema.sql      # skema tabel + RLS untuk dijalankan di Supabase
 ```
@@ -98,9 +102,9 @@ supabase/schema.sql      # skema tabel + RLS untuk dijalankan di Supabase
 ## Mengembangkan lebih lanjut
 
 Beberapa ide lanjutan yang bisa ditambahkan nanti:
-- Login petugas (Supabase Auth) supaya setiap perubahan status tercatat
-  siapa yang mengubah.
+- Login petugas (Supabase Auth) supaya nama petugas di riwayat kondisi
+  terisi otomatis, bukan diketik manual.
 - Upload foto barang (Supabase Storage) dan tampilkan di kartu detail.
-- Halaman untuk melihat riwayat kondisi tiap barang (tabel `riwayat_kondisi`
-  sudah disiapkan di skema).
+- Sistem peminjaman alat (siapa pinjam, kapan kembali).
 - Reminder jadwal pengecekan berkala.
+- Filter & pencarian di tab Rekap kalau data sudah banyak.
