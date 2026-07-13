@@ -11,10 +11,31 @@ const KATEGORI_OPTIONS = [
   'Lainnya',
 ]
 
-function generateKode() {
-  const rand = Math.random().toString(36).slice(2, 7).toUpperCase()
-  const stamp = Date.now().toString(36).slice(-4).toUpperCase()
-  return `BJ-${stamp}${rand}`
+/**
+ * Mengambil nomor urut terbesar dari kolom kode yang berpola "BJ-NNN",
+ * lalu mengembalikan kode berikutnya (mis. "BJ-042").
+ * Jika tidak ada kode dengan pola tersebut, mulai dari BJ-001.
+ */
+async function generateKode() {
+  const { data } = await supabase
+    .from('perkakas')
+    .select('kode')
+    .like('kode', 'BJ-%')
+    .order('kode', { ascending: false })
+
+  let maxNum = 0
+  if (data && data.length > 0) {
+    for (const { kode } of data) {
+      const match = kode.match(/^BJ-(\d+)$/)
+      if (match) {
+        const n = parseInt(match[1], 10)
+        if (n > maxNum) maxNum = n
+      }
+    }
+  }
+
+  const next = maxNum + 1
+  return `BJ-${String(next).padStart(3, '0')}`
 }
 
 export default function AddItemPage() {
@@ -43,7 +64,14 @@ export default function AddItemPage() {
     setSaving(true)
     setError(null)
 
-    const kode = generateKode()
+    let kode
+    try {
+      kode = await generateKode()
+    } catch {
+      setSaving(false)
+      setError('Gagal membuat kode barang. Periksa koneksi ke Supabase.')
+      return
+    }
 
     const { data, error: err } = await supabase
       .from('perkakas')

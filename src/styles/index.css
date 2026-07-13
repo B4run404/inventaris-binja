@@ -438,16 +438,63 @@ textarea:focus-visible {
   margin-bottom: 14px;
 }
 
+/* ====================================================================
+   SPINNER — inline loading indicator
+   Usage: <span className="spinner" />
+   ==================================================================== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .spinner {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid var(--steel-line);
   border-top-color: var(--tag-amber);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* ====================================================================
+   FILTER BAR — search & filter controls on ListPage
+   ==================================================================== */
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-row .field-input,
+.filter-row .field-select {
+  margin: 0;
+  font-size: 13.5px;
+  padding: 9px 10px;
+}
+
+.filter-clear {
+  background: none;
+  border: 1px solid var(--steel-line);
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.filter-clear:hover {
+  color: var(--paper);
+  border-color: var(--paper-dim);
 }

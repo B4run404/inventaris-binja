@@ -96,8 +96,10 @@ create policy "riwayat_peminjaman: baca" on riwayat_peminjaman
   for select to authenticated using (true);
 create policy "riwayat_peminjaman: tulis" on riwayat_peminjaman
   for insert to authenticated with check (true);
-create policy "riwayat_peminjaman: ubah" on riwayat_peminjaman
-  for update to authenticated using (true) with check (true);
+-- UPDATE (catat tanggal_kembali) hanya boleh dilakukan oleh admin,
+-- mencegah peminjam mengubah tanggal kembali milik orang lain.
+create policy "riwayat_peminjaman: ubah admin" on riwayat_peminjaman
+  for update to authenticated using (is_admin()) with check (is_admin());
 
 -- ----------------------------------------------------------------
 -- 5. User admin pertama (opsional)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -19,6 +19,11 @@ export default function ListPage() {
   const [qrDataUrl, setQrDataUrl] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+
+  // Filter state
+  const [search, setSearch] = useState('')
+  const [filterKondisi, setFilterKondisi] = useState('')
+  const [filterPinjam, setFilterPinjam] = useState('')
 
   async function loadItems() {
     setLoading(true)
@@ -77,6 +82,25 @@ export default function ListPage() {
     }
   }
 
+  // Filtered items based on search + kondisi + status pinjam
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return items.filter((it) => {
+      if (q && !it.nama.toLowerCase().includes(q) && !it.kode.toLowerCase().includes(q)) return false
+      if (filterKondisi && it.kondisi !== filterKondisi) return false
+      if (filterPinjam && it.status_pinjam !== filterPinjam) return false
+      return true
+    })
+  }, [items, search, filterKondisi, filterPinjam])
+
+  const hasFilter = search || filterKondisi || filterPinjam
+
+  function clearFilters() {
+    setSearch('')
+    setFilterKondisi('')
+    setFilterPinjam('')
+  }
+
   const counts = items.reduce(
     (acc, it) => {
       acc[it.kondisi] = (acc[it.kondisi] || 0) + 1
@@ -97,6 +121,50 @@ export default function ListPage() {
         )}
       </div>
 
+      {/* Filter bar */}
+      <div className="filter-bar">
+        <div className="filter-row">
+          <input
+            className="field-input"
+            placeholder="Cari nama atau kode..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setOpenId(null) }}
+            style={{ flex: 1 }}
+          />
+          {hasFilter && (
+            <button className="filter-clear" onClick={clearFilters}>Reset</button>
+          )}
+        </div>
+        <div className="filter-row">
+          <select
+            className="field-select"
+            value={filterKondisi}
+            onChange={(e) => { setFilterKondisi(e.target.value); setOpenId(null) }}
+            style={{ flex: 1 }}
+          >
+            <option value="">Semua Kondisi</option>
+            <option>Layak Pakai</option>
+            <option>Perlu Perbaikan</option>
+            <option>Rusak / Afkir</option>
+          </select>
+          <select
+            className="field-select"
+            value={filterPinjam}
+            onChange={(e) => { setFilterPinjam(e.target.value); setOpenId(null) }}
+            style={{ flex: 1 }}
+          >
+            <option value="">Semua Status</option>
+            <option value="Tersedia">Tersedia</option>
+            <option value="Dipinjam">Dipinjam</option>
+          </select>
+        </div>
+        {hasFilter && (
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--paper-dim)' }}>
+            Menampilkan {filteredItems.length} dari {items.length} barang
+          </p>
+        )}
+      </div>
+
       {loading && <p className="scan-hint"><span className="spinner" /> Memuat data...</p>}
       {error && <div className="banner-error">{error}</div>}
 
@@ -107,7 +175,17 @@ export default function ListPage() {
         </div>
       )}
 
-      {items.map((it) => (
+      {!loading && !error && items.length > 0 && filteredItems.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-state-icon">◎</div>
+          <p style={{ margin: 0 }}>Tidak ada barang yang cocok dengan filter.</p>
+          <button className="filter-clear" style={{ marginTop: 10 }} onClick={clearFilters}>
+            Reset Filter
+          </button>
+        </div>
+      )}
+
+      {filteredItems.map((it) => (
         <div key={it.id}>
           <button
             onClick={() => toggleDetail(it)}

@@ -4,11 +4,13 @@ import LoginPage from './pages/LoginPage'
 import ScanPage from './pages/ScanPage'
 import AddItemPage from './pages/AddItemPage'
 import ListPage from './pages/ListPage'
+import LoanHistoryPage from './pages/LoanHistoryPage'
 
 const ALL_TABS = [
   { key: 'scan', label: 'Scan Barang', roles: ['admin', 'peminjam'] },
   { key: 'add', label: 'Tambah Barang', roles: ['admin'] },
   { key: 'list', label: 'Rekap', roles: ['admin', 'peminjam'] },
+  { key: 'riwayat', label: 'Riwayat', roles: ['admin'] },
 ]
 
 function AppContent() {
@@ -68,6 +70,7 @@ function AppContent() {
         {activeTab === 'scan' && <ScanPage />}
         {activeTab === 'add' && <AddItemPage />}
         {activeTab === 'list' && <ListPage />}
+        {activeTab === 'riwayat' && <LoanHistoryPage />}
       </main>
 
       <nav className="tab-bar">
