@@ -1,0 +1,32 @@
+# Ping Supabase setiap 5 hari supaya project free-tier tidak auto-pause.
+# Supabase pauses free-tier projects after 7 days of inactivity.
+#
+# SETUP: Tambahkan 2 Repository Secrets di GitHub (Settings > Secrets > Actions):
+#   SUPABASE_URL       → Project URL dari Supabase (cth: https://xxx.supabase.co)
+#   SUPABASE_ANON_KEY  → anon public key dari Supabase
+
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Jalan setiap 5 hari jam 04:00 UTC (11:00 WIB)
+    - cron: '0 4 */5 * *'
+  workflow_dispatch: # Bisa di-trigger manual dari GitHub Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/perkakas?select=count&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Response status: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
+            echo "✅ Supabase is alive"
+          else
+            echo "⚠️ Unexpected status $STATUS — check Supabase dashboard"
+            exit 1
+          fi
