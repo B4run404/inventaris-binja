@@ -11,11 +11,27 @@ create table if not exists perkakas (
   lokasi text,
   catatan text,
   foto_url text,
+  status_pinjam text not null default 'Tersedia'
+    check (status_pinjam in ('Tersedia', 'Dipinjam')),
+  dipinjam_oleh text,
+  tanggal_pinjam timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists idx_perkakas_kode on perkakas (kode);
+
+-- Riwayat peminjaman: histori lengkap siapa pinjam kapan, kembali kapan
+create table if not exists riwayat_peminjaman (
+  id uuid primary key default gen_random_uuid(),
+  perkakas_id uuid references perkakas (id) on delete cascade,
+  peminjam text not null,
+  catatan text,
+  tanggal_pinjam timestamptz not null default now(),
+  tanggal_kembali timestamptz
+);
+
+create index if not exists idx_riwayat_peminjaman_perkakas on riwayat_peminjaman (perkakas_id);
 
 -- Riwayat perubahan kondisi (opsional, untuk audit trail)
 create table if not exists riwayat_kondisi (
@@ -45,6 +61,7 @@ create trigger trg_perkakas_updated_at
 -- Row Level Security
 alter table perkakas enable row level security;
 alter table riwayat_kondisi enable row level security;
+alter table riwayat_peminjaman enable row level security;
 
 -- KEBIJAKAN SEDERHANA UNTUK PEMAKAIAN INTERNAL:
 -- mengizinkan akses penuh lewat anon key (cukup untuk aplikasi internal
@@ -55,4 +72,31 @@ create policy "Izinkan semua akses (internal)" on perkakas
   for all using (true) with check (true);
 
 create policy "Izinkan semua akses riwayat (internal)" on riwayat_kondisi
+  for all using (true) with check (true);
+
+create policy "Izinkan semua akses peminjaman (internal)" on riwayat_peminjaman
+  for all using (true) with check (true);
+
+-- ====================================================================
+-- MIGRASI: kalau tabel "perkakas" sudah pernah dibuat sebelumnya (versi
+-- lama tanpa kolom peminjaman), jalankan blok ini saja untuk menambah
+-- kolom baru tanpa menghapus data yang sudah ada. Aman dijalankan
+-- berkali-kali (idempotent).
+-- ====================================================================
+alter table perkakas add column if not exists status_pinjam text not null default 'Tersedia'
+  check (status_pinjam in ('Tersedia', 'Dipinjam'));
+alter table perkakas add column if not exists dipinjam_oleh text;
+alter table perkakas add column if not exists tanggal_pinjam timestamptz;
+
+create table if not exists riwayat_peminjaman (
+  id uuid primary key default gen_random_uuid(),
+  perkakas_id uuid references perkakas (id) on delete cascade,
+  peminjam text not null,
+  catatan text,
+  tanggal_pinjam timestamptz not null default now(),
+  tanggal_kembali timestamptz
+);
+alter table riwayat_peminjaman enable row level security;
+drop policy if exists "Izinkan semua akses peminjaman (internal)" on riwayat_peminjaman;
+create policy "Izinkan semua akses peminjaman (internal)" on riwayat_peminjaman
   for all using (true) with check (true);

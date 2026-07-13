@@ -11,12 +11,21 @@ kelayakan barang lewat scan barcode/QR menggunakan kamera HP.
 - **Ubah Status & Riwayat** — langsung dari hasil scan, bisa ubah status
   kondisi barang (dengan catatan dan nama petugas), dan lihat riwayat
   perubahan status sebelumnya.
+- **Peminjaman Alat** — dari hasil scan, tandai barang "Dipinjam" (wajib isi
+  nama peminjam) atau "Dikembalikan", dengan konfirmasi sebelum disimpan.
+  Status peminjaman juga terlihat di tab Rekap.
 
 Dibangun dengan React + Vite, database Supabase (PostgreSQL).
 
 ---
 
 ## 1. Siapkan Supabase
+
+> **Sudah punya database dari versi sebelumnya?** Jangan jalankan seluruh
+> `schema.sql` dari atas (nanti error karena tabel sudah ada). Cukup buka
+> file itu, scroll ke bagian paling bawah berjudul **"MIGRASI"**, lalu
+> jalankan hanya blok SQL itu di SQL Editor Supabase. Ini aman dan tidak
+> akan menghapus data barang yang sudah ada.
 
 1. Buat akun/login di [supabase.com](https://supabase.com) dan buat project baru.
 2. Di dashboard project, buka **SQL Editor** → buat query baru → tempel
@@ -95,6 +104,7 @@ src/
   components/
     ToolTagCard.jsx        # kartu detail bergaya label gantung perkakas
     StatusUpdatePanel.jsx  # ubah status kondisi + lihat riwayat
+    LoanPanel.jsx          # tandai dipinjam/dikembalikan + konfirmasi
   styles/index.css      # semua styling
 supabase/schema.sql      # skema tabel + RLS untuk dijalankan di Supabase
 ```

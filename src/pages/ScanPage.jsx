@@ -3,6 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode'
 import { supabase } from '../supabaseClient'
 import ToolTagCard from '../components/ToolTagCard'
 import StatusUpdatePanel from '../components/StatusUpdatePanel'
+import LoanPanel from '../components/LoanPanel'
 
 const READER_ID = 'scan-reader'
 
@@ -135,6 +136,7 @@ export default function ScanPage() {
       {item && (
         <>
           <ToolTagCard item={item} />
+          <LoanPanel item={item} onUpdated={(updated) => setItem(updated)} />
           <StatusUpdatePanel item={item} onUpdated={(updated) => setItem(updated)} />
         </>
       )}

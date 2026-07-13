@@ -92,9 +92,14 @@ export default function ListPage() {
               <div className="list-item-name">{it.nama}</div>
               <div className="list-item-kode">{it.kode} · {it.lokasi || '—'}</div>
             </div>
-            <span className={`status-pill ${STATUS_CLASS[it.kondisi] || 'perbaikan'}`}>
-              {it.kondisi}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+              <span className={`status-pill ${STATUS_CLASS[it.kondisi] || 'perbaikan'}`}>
+                {it.kondisi}
+              </span>
+              {it.status_pinjam === 'Dipinjam' && (
+                <span className="status-pill perbaikan">Dipinjam</span>
+              )}
+            </div>
           </button>
 
           {openId === it.id && (
