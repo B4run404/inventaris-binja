@@ -17,16 +17,28 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping Supabase API
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/perkakas?select=count&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
-          echo "Response status: $STATUS"
-          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
-            echo "✅ Supabase is alive"
+          # Bersihkan URL & Key dari kemungkinan spasi/kutip saat copas
+          URL=$(echo "${{ secrets.SUPABASE_URL }}" | tr -d '"'\'' ' | sed 's#/$##')
+          KEY=$(echo "${{ secrets.SUPABASE_ANON_KEY }}" | tr -d '"'\'' ')
+
+          # 1. Ping Auth Health Endpoint (selalu 200 OK & menjaga instance aktif)
+          STATUS_AUTH=$(curl -s -o /dev/null -w "%{http_code}" "$URL/auth/v1/health")
+          echo "Auth health status: $STATUS_AUTH"
+
+          # 2. Ping REST API Root
+          STATUS_REST=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$URL/rest/v1/" \
+            -H "apikey: $KEY" \
+            -H "Authorization: Bearer $KEY")
+          echo "REST API status: $STATUS_REST"
+
+          if [ "$STATUS_AUTH" -ge 200 ] && [ "$STATUS_AUTH" -lt 300 ]; then
+            echo "✅ Supabase Auth is alive!"
+          elif [ "$STATUS_REST" -ge 200 ] && [ "$STATUS_REST" -lt 300 ]; then
+            echo "✅ Supabase REST is alive!"
           else
-            echo "⚠️ Unexpected status $STATUS — check Supabase dashboard"
+            echo "⚠️ Unexpected status (Auth: $STATUS_AUTH, REST: $STATUS_REST)"
             exit 1
           fi
