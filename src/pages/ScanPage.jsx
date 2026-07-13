@@ -15,6 +15,7 @@ export default function ScanPage() {
   const [notFoundCode, setNotFoundCode] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [manualKode, setManualKode] = useState('')
   const scannerRef = useRef(null)
 
   useEffect(() => {
@@ -114,6 +115,38 @@ export default function ScanPage() {
         </button>
       )}
 
+      {/* Manual code input fallback */}
+      <div className="manual-divider">
+        <span>atau ketik kode manual</span>
+      </div>
+      <form
+        className="manual-input-row"
+        onSubmit={(e) => {
+          e.preventDefault()
+          const kode = manualKode.trim()
+          if (!kode) return
+          stopScanner()
+          lookupKode(kode)
+          setManualKode('')
+        }}
+      >
+        <input
+          className="field-input"
+          placeholder="Cth: BJ-001"
+          value={manualKode}
+          onChange={(e) => setManualKode(e.target.value)}
+          style={{ flex: 1, margin: 0 }}
+        />
+        <button
+          className="scan-cta"
+          type="submit"
+          disabled={!manualKode.trim() || loading}
+          style={{ width: 'auto', marginTop: 0, padding: '11px 20px' }}
+        >
+          Cari
+        </button>
+      </form>
+
       {loading && (
         <p className="scan-hint">
           <span className="spinner" /> Mencari data...
@@ -152,9 +185,9 @@ export default function ScanPage() {
         </>
       )}
 
-      {!scanning && !item && !notFoundCode && !error && (
+      {!scanning && !item && !notFoundCode && !error && !loading && (
         <p className="scan-hint">
-          Tekan "Mulai Scan" lalu izinkan akses kamera saat diminta browser.
+          Tekan "Mulai Scan" atau ketik kode barang di kolom di atas.
         </p>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useCallback, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -110,15 +110,101 @@ export default function ListPage() {
     {}
   )
 
+  /**
+   * Export data yang sedang ditampilkan (sesuai filter) ke file CSV.
+   * CSV bisa langsung dibuka di Excel / Google Sheets.
+   */
+  const exportToCSV = useCallback(() => {
+    const source = hasFilter ? filteredItems : items
+    if (source.length === 0) return
+
+    const headers = [
+      'Kode',
+      'Nama Barang',
+      'Kategori',
+      'Kondisi',
+      'Lokasi',
+      'Status Pinjam',
+      'Dipinjam Oleh',
+      'Tanggal Pinjam',
+      'Catatan',
+      'Terakhir Diupdate',
+      'Ditambahkan',
+    ]
+
+    function esc(val) {
+      if (val == null || val === '') return ''
+      const s = String(val)
+      // Wrap in quotes if it contains comma, quote, or newline
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return '"' + s.replace(/"/g, '""') + '"'
+      }
+      return s
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return ''
+      return new Date(iso).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    }
+
+    const rows = source.map((it) =>
+      [
+        it.kode,
+        it.nama,
+        it.kategori || '',
+        it.kondisi,
+        it.lokasi || '',
+        it.status_pinjam || 'Tersedia',
+        it.dipinjam_oleh || '',
+        fmtDate(it.tanggal_pinjam),
+        it.catatan || '',
+        fmtDate(it.updated_at),
+        fmtDate(it.created_at),
+      ]
+        .map(esc)
+        .join(',')
+    )
+
+    // BOM for UTF-8 so Excel reads accented chars correctly
+    const bom = '\uFEFF'
+    const csv = bom + headers.join(',') + '\n' + rows.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const now = new Date()
+    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+    const suffix = hasFilter ? '_filtered' : ''
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `laporan_inventaris_binja_${stamp}${suffix}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [items, filteredItems, hasFilter])
+
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
         <span className="status-pill layak">Layak {counts['Layak Pakai'] || 0}</span>
         <span className="status-pill perbaikan">Perbaikan {counts['Perlu Perbaikan'] || 0}</span>
         <span className="status-pill rusak">Rusak {counts['Rusak / Afkir'] || 0}</span>
         {(counts.dipinjam || 0) > 0 && (
           <span className="status-pill perbaikan">Dipinjam {counts.dipinjam}</span>
         )}
+        <button
+          className="export-btn"
+          onClick={exportToCSV}
+          disabled={items.length === 0}
+          title={hasFilter ? `Export ${filteredItems.length} barang (sesuai filter)` : `Export semua ${items.length} barang`}
+        >
+          ↓ Export{hasFilter ? ` (${filteredItems.length})` : ''}
+        </button>
       </div>
 
       {/* Filter bar */}
