@@ -1,14 +1,40 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-export default function LoanPanel({ item, onUpdated }) {
+function formatLoanError(err, action) {
+  const msg = (err?.message || '').toLowerCase()
+
+  if (msg.includes('status_pinjam') || msg.includes('dipinjam_oleh') || msg.includes('tanggal_pinjam')) {
+    return `Kolom peminjaman belum ada di database. Jalankan file supabase/migrate-peminjaman.sql di Supabase SQL Editor, lalu coba lagi.`
+  }
+  if (msg.includes('riwayat_peminjaman')) {
+    return `Tabel riwayat peminjaman belum ada. Jalankan file supabase/migrate-peminjaman.sql di Supabase SQL Editor, lalu coba lagi.`
+  }
+  if (msg.includes('permission') || err?.code === '42501') {
+    return `Akses ditolak database saat ${action}. Periksa Row Level Security di Supabase.`
+  }
+
+  const detail = err?.message ? ` (${err.message})` : ''
+  return `Gagal ${action}${detail}. Periksa koneksi atau pengaturan Supabase.`
+}
+
+export default function LoanPanel({ item, onUpdated, defaultPeminjam = '', lockPeminjamName = false }) {
   const [mode, setMode] = useState(null) // null | 'confirm-pinjam' | 'confirm-kembali'
-  const [peminjam, setPeminjam] = useState('')
+  const [peminjam, setPeminjam] = useState(defaultPeminjam)
   const [catatan, setCatatan] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
   const isDipinjam = item.status_pinjam === 'Dipinjam'
+
+  useEffect(() => {
+    if (defaultPeminjam) setPeminjam(defaultPeminjam)
+  }, [defaultPeminjam])
+
+  function openMode() {
+    if (!isDipinjam && defaultPeminjam) setPeminjam(defaultPeminjam)
+    setMode(isDipinjam ? 'confirm-kembali' : 'confirm-pinjam')
+  }
 
   async function confirmPinjam(e) {
     e.preventDefault()
@@ -28,11 +54,11 @@ export default function LoanPanel({ item, onUpdated }) {
 
     if (updateErr) {
       setSaving(false)
-      setError('Gagal menyimpan status peminjaman.')
+      setError(formatLoanError(updateErr, 'menyimpan status peminjaman'))
       return
     }
 
-    await supabase.from('riwayat_peminjaman').insert([
+    const { error: historyErr } = await supabase.from('riwayat_peminjaman').insert([
       {
         perkakas_id: item.id,
         peminjam,
@@ -40,6 +66,12 @@ export default function LoanPanel({ item, onUpdated }) {
         tanggal_pinjam: now,
       },
     ])
+
+    if (historyErr) {
+      setSaving(false)
+      setError(formatLoanError(historyErr, 'menyimpan riwayat peminjaman'))
+      return
+    }
 
     setSaving(false)
     setMode(null)
@@ -62,16 +94,21 @@ export default function LoanPanel({ item, onUpdated }) {
 
     if (updateErr) {
       setSaving(false)
-      setError('Gagal menyimpan status pengembalian.')
+      setError(formatLoanError(updateErr, 'menyimpan status pengembalian'))
       return
     }
 
-    // Tutup baris riwayat peminjaman yang masih terbuka untuk barang ini
-    await supabase
+    const { error: historyErr } = await supabase
       .from('riwayat_peminjaman')
       .update({ tanggal_kembali: now })
       .eq('perkakas_id', item.id)
       .is('tanggal_kembali', null)
+
+    if (historyErr) {
+      setSaving(false)
+      setError(formatLoanError(historyErr, 'menyimpan riwayat pengembalian'))
+      return
+    }
 
     setSaving(false)
     setMode(null)
@@ -113,7 +150,7 @@ export default function LoanPanel({ item, onUpdated }) {
         <button
           className="scan-cta"
           style={{ marginTop: 0 }}
-          onClick={() => setMode(isDipinjam ? 'confirm-kembali' : 'confirm-pinjam')}
+          onClick={openMode}
         >
           {isDipinjam ? 'Tandai Dikembalikan' : 'Tandai Dipinjam'}
         </button>
@@ -129,6 +166,7 @@ export default function LoanPanel({ item, onUpdated }) {
               onChange={(e) => setPeminjam(e.target.value)}
               placeholder="Cth: Andi"
               autoFocus
+              readOnly={lockPeminjamName}
             />
           </div>
           <div className="field-group">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 import ToolTagCard from '../components/ToolTagCard'
 import StatusUpdatePanel from '../components/StatusUpdatePanel'
 import LoanPanel from '../components/LoanPanel'
@@ -8,6 +9,7 @@ import LoanPanel from '../components/LoanPanel'
 const READER_ID = 'scan-reader'
 
 export default function ScanPage() {
+  const { displayName, isAdmin } = useAuth()
   const [scanning, setScanning] = useState(false)
   const [item, setItem] = useState(null)
   const [notFoundCode, setNotFoundCode] = useState(null)
@@ -136,8 +138,17 @@ export default function ScanPage() {
       {item && (
         <>
           <ToolTagCard item={item} />
-          <LoanPanel item={item} onUpdated={(updated) => setItem(updated)} />
-          <StatusUpdatePanel item={item} onUpdated={(updated) => setItem(updated)} />
+          <LoanPanel
+            item={item}
+            onUpdated={(updated) => setItem(updated)}
+            defaultPeminjam={displayName}
+            lockPeminjamName={!isAdmin}
+          />
+          <StatusUpdatePanel
+            item={item}
+            onUpdated={(updated) => setItem(updated)}
+            defaultPetugas={displayName}
+          />
         </>
       )}
 

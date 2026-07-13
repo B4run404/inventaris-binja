@@ -3,12 +3,12 @@ import { supabase } from '../supabaseClient'
 
 const KONDISI_OPTIONS = ['Layak Pakai', 'Perlu Perbaikan', 'Rusak / Afkir']
 
-export default function StatusUpdatePanel({ item, onUpdated }) {
+export default function StatusUpdatePanel({ item, onUpdated, defaultPetugas = '' }) {
   const [editing, setEditing] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [kondisiBaru, setKondisiBaru] = useState(item.kondisi)
   const [catatan, setCatatan] = useState('')
-  const [diubahOleh, setDiubahOleh] = useState('')
+  const [diubahOleh, setDiubahOleh] = useState(defaultPetugas)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -20,8 +20,9 @@ export default function StatusUpdatePanel({ item, onUpdated }) {
     setEditing(false)
     setShowHistory(false)
     setCatatan('')
+    setDiubahOleh(defaultPetugas)
     setError(null)
-  }, [item.id])
+  }, [item.id, defaultPetugas])
 
   async function loadHistory() {
     setHistoryLoading(true)
