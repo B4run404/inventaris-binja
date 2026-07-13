@@ -19,26 +19,42 @@ jobs:
     steps:
       - name: Ping Supabase API
         run: |
-          # Bersihkan URL & Key dari kemungkinan spasi/kutip saat copas
-          URL=$(echo "${{ secrets.SUPABASE_URL }}" | tr -d '"'\'' ' | sed 's#/$##')
-          KEY=$(echo "${{ secrets.SUPABASE_ANON_KEY }}" | tr -d '"'\'' ')
+          # Mendukung nama secret SUPABASE_URL maupun VITE_SUPABASE_URL
+          RAW_URL="${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL }}"
+          RAW_KEY="${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}"
 
-          # 1. Ping Auth Health Endpoint (selalu 200 OK & menjaga instance aktif)
+          if [ -z "$RAW_URL" ]; then
+            echo "❌ ERROR: Secret SUPABASE_URL (atau VITE_SUPABASE_URL) masih kosong/belum terbaca!"
+            exit 1
+          fi
+
+          # Bersihkan URL & pastikan berawalan https://
+          URL=$(echo "$RAW_URL" | tr -d '"'\'' ' | sed 's#/$##')
+          URL="${URL#http://}"
+          URL="${URL#https://}"
+          URL="https://$URL"
+
+          KEY=$(echo "$RAW_KEY" | tr -d '"'\'' ')
+
+          echo "Pinging host: $URL ..."
+
+          # 1. Ping Auth Health Endpoint
           STATUS_AUTH=$(curl -s -o /dev/null -w "%{http_code}" "$URL/auth/v1/health")
-          echo "Auth health status: $STATUS_AUTH"
+          echo "Auth health check status: $STATUS_AUTH"
 
           # 2. Ping REST API Root
           STATUS_REST=$(curl -s -o /dev/null -w "%{http_code}" \
             "$URL/rest/v1/" \
             -H "apikey: $KEY" \
             -H "Authorization: Bearer $KEY")
-          echo "REST API status: $STATUS_REST"
+          echo "REST API root check status: $STATUS_REST"
 
-          if [ "$STATUS_AUTH" -ge 200 ] && [ "$STATUS_AUTH" -lt 300 ]; then
-            echo "✅ Supabase Auth is alive!"
-          elif [ "$STATUS_REST" -ge 200 ] && [ "$STATUS_REST" -lt 300 ]; then
-            echo "✅ Supabase REST is alive!"
+          if [ "$STATUS_AUTH" -ge 200 ] && [ "$STATUS_AUTH" -lt 400 ]; then
+            echo "✅ Supabase Auth service merespons normal ($STATUS_AUTH). Project aktif!"
+          elif [ "$STATUS_REST" -ge 200 ] && [ "$STATUS_REST" -lt 400 ]; then
+            echo "✅ Supabase REST service merespons normal ($STATUS_REST). Project aktif!"
           else
-            echo "⚠️ Unexpected status (Auth: $STATUS_AUTH, REST: $STATUS_REST)"
+            echo "❌ Gagal menghubungi Supabase (Auth: $STATUS_AUTH, REST: $STATUS_REST)."
+            echo "Pastikan Secret SUPABASE_URL dan SUPABASE_ANON_KEY di GitHub Settings > Secrets sudah benar."
             exit 1
           fi
