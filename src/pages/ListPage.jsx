@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import QRCode from 'qrcode'
 import { supabase } from '../supabaseClient'
 
 const STATUS_CLASS = {
@@ -11,6 +12,8 @@ export default function ListPage() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [openId, setOpenId] = useState(null)
+  const [qrDataUrl, setQrDataUrl] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -32,6 +35,17 @@ export default function ListPage() {
     load()
     return () => { active = false }
   }, [])
+
+  async function toggleBarcode(it) {
+    if (openId === it.id) {
+      setOpenId(null)
+      setQrDataUrl(null)
+      return
+    }
+    setOpenId(it.id)
+    const dataUrl = await QRCode.toDataURL(it.kode, { width: 220, margin: 1 })
+    setQrDataUrl(dataUrl)
+  }
 
   const counts = items.reduce(
     (acc, it) => {
@@ -60,14 +74,50 @@ export default function ListPage() {
       )}
 
       {items.map((it) => (
-        <div className="list-item" key={it.id}>
-          <div>
-            <div className="list-item-name">{it.nama}</div>
-            <div className="list-item-kode">{it.kode} · {it.lokasi || '—'}</div>
-          </div>
-          <span className={`status-pill ${STATUS_CLASS[it.kondisi] || 'perbaikan'}`}>
-            {it.kondisi}
-          </span>
+        <div key={it.id}>
+          <button
+            onClick={() => toggleBarcode(it)}
+            style={{
+              all: 'unset',
+              display: 'flex',
+              width: '100%',
+              cursor: 'pointer',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 4px',
+              borderBottom: openId === it.id ? 'none' : '1px solid var(--steel-line)',
+            }}
+          >
+            <div>
+              <div className="list-item-name">{it.nama}</div>
+              <div className="list-item-kode">{it.kode} · {it.lokasi || '—'}</div>
+            </div>
+            <span className={`status-pill ${STATUS_CLASS[it.kondisi] || 'perbaikan'}`}>
+              {it.kondisi}
+            </span>
+          </button>
+
+          {openId === it.id && (
+            <div style={{ paddingBottom: 16, borderBottom: '1px solid var(--steel-line)' }}>
+              {qrDataUrl ? (
+                <>
+                  <div className="qr-preview">
+                    <img src={qrDataUrl} alt={`Barcode untuk ${it.nama}`} width={180} height={180} />
+                  </div>
+                  <a
+                    href={qrDataUrl}
+                    download={`barcode-${it.kode}.png`}
+                    className="scan-cta"
+                    style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: 10 }}
+                  >
+                    Unduh Barcode Ini
+                  </a>
+                </>
+              ) : (
+                <p className="scan-hint"><span className="spinner" /> Membuat barcode...</p>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>
